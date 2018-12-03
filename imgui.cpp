@@ -672,8 +672,8 @@ CODE
      you to animate labels. For example you may want to include varying information in a window title bar,
      but windows are uniquely identified by their ID. Use "###" to pass a label that isn't part of ID:
 
-       Button("Hello###ID";   // Label = "Hello",  ID = hash of (..., "ID")
-       Button("World###ID";   // Label = "World",  ID = hash of (..., "ID")     // Same as above, even though the label looks different
+       Button("Hello###ID");  // Label = "Hello",  ID = hash of (..., "ID")
+       Button("World###ID");  // Label = "World",  ID = hash of (..., "ID")     // Same as above, even though the label looks different
 
        sprintf(buf, "My game (%f FPS)###MyGame", fps);
        Begin(buf);            // Variable title,   ID = hash of "MyGame"
@@ -1096,7 +1096,8 @@ ImGuiIO::ImGuiIO()
     ConfigInputTextCursorBlink = true;
     ConfigResizeWindowsFromEdges = false;
 
-    // Settings (User Functions)
+    // Platform Functions
+    BackendPlatformName = BackendRendererName = NULL;
     GetClipboardTextFn = GetClipboardTextFn_DefaultImpl;   // Platform dependent default implementations
     SetClipboardTextFn = SetClipboardTextFn_DefaultImpl;
     ClipboardUserData = NULL;
@@ -1107,7 +1108,7 @@ ImGuiIO::ImGuiIO()
     RenderDrawListsFn = NULL;
 #endif
 
-    // Input (NB: we already have memset zero the entire structure)
+    // Input (NB: we already have memset zero the entire structure!)
     MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
     MousePosPrev = ImVec2(-FLT_MAX, -FLT_MAX);
     MouseDragThreshold = 6.0f;
