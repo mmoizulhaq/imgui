@@ -30,6 +30,8 @@ Index of this file:
 #endif
 #include "imgui_internal.h"
 
+#ifndef IMGUI_DISABLE_API
+
 #include <stdio.h>      // vsnprintf, sscanf, printf
 #if !defined(alloca)
 #if defined(__GLIBC__) || defined(__sun) || defined(__CYGWIN__) || defined(__APPLE__)
@@ -3223,3 +3225,5 @@ static const char* GetDefaultCompressedFontDataTTFBase85()
 {
     return proggy_clean_ttf_compressed_data_base85;
 }
+
+#endif // IMGUI_DISABLE_API

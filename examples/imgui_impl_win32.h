@@ -11,6 +11,8 @@
 
 #pragma once
 
+#ifndef IMGUI_DISABLE_API
+
 IMGUI_IMPL_API bool     ImGui_ImplWin32_Init(void* hwnd);
 IMGUI_IMPL_API void     ImGui_ImplWin32_Shutdown();
 IMGUI_IMPL_API void     ImGui_ImplWin32_NewFrame();
@@ -27,3 +29,5 @@ IMGUI_API float       ImGui_ImplWin32_GetDpiScaleForRect(int x1, int y1, int x2,
 /*
 IMGUI_IMPL_API LRESULT  ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 */
+
+#endif // IMGUI_DISABLE_API

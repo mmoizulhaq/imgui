@@ -71,11 +71,15 @@ void CleanupDeviceD3D()
 #define WM_DPICHANGED 0x02E0 // From Windows SDK 8.1+ headers
 #endif
 
+#ifndef IMGUI_DISABLE_API
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#endif // IMGUI_DISABLE_API
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+#ifndef IMGUI_DISABLE_API
     if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
         return true;
+#endif // IMGUI_DISABLE_API
 
     switch (msg)
     {
@@ -94,6 +98,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
+#ifndef IMGUI_DISABLE_API
     case WM_DPICHANGED:
         if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DpiEnableScaleViewports)
         {
@@ -103,13 +108,16 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             ::SetWindowPos(hWnd, NULL, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
         }
         break;
+#endif // IMGUI_DISABLE_API
     }
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 int main(int, char**)
 {
+#ifndef IMGUI_DISABLE_API
     ImGui_ImplWin32_EnableDpiAwareness();
+#endif // IMGUI_DISABLE_API
 
     // Create application window
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("ImGui Example"), NULL };
@@ -129,6 +137,7 @@ int main(int, char**)
     UpdateWindow(hwnd);
 
     // Setup Dear ImGui context
+#ifndef IMGUI_DISABLE_API
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -154,6 +163,7 @@ int main(int, char**)
     style.WindowRounding = 0.0f;                                // When viewports are enabled it is preferable to disable WinodwRounding
     style.Colors[ImGuiCol_WindowBg].w = 1.0f;                   // When viewports are enabled it is preferable to disable WindowBg alpha
 
+
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them. 
     // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple. 
@@ -173,6 +183,7 @@ int main(int, char**)
     bool show_demo_window = true;
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+#endif // IMGUI_DISABLE_API
 
     // Main loop
     MSG msg;
@@ -191,6 +202,7 @@ int main(int, char**)
             continue;
         }
 
+#ifndef IMGUI_DISABLE_API
         // Start the Dear ImGui frame
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
@@ -245,14 +257,17 @@ int main(int, char**)
             ImGui::UpdatePlatformWindows();
             ImGui::RenderPlatformWindowsDefault();
         }
+#endif // IMGUI_DISABLE_API
 
         g_pSwapChain->Present(1, 0); // Present with vsync
         //g_pSwapChain->Present(0, 0); // Present without vsync
     }
 
+#ifndef IMGUI_DISABLE_API
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();
+#endif // IMGUI_DISABLE_API
 
     CleanupDeviceD3D();
     DestroyWindow(hwnd);

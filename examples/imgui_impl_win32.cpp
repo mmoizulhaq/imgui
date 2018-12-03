@@ -11,6 +11,9 @@
 
 #include "imgui.h"
 #include "imgui_impl_win32.h"
+
+#ifndef IMGUI_DISABLE_API
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -714,3 +717,5 @@ static void ImGui_ImplWin32_ShutdownPlatformInterface()
 {
     ::UnregisterClass(_T("ImGui Platform"), ::GetModuleHandle(NULL));
 }
+
+#endif // IMGUI_DISABLE_API

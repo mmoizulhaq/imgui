@@ -24,6 +24,8 @@
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 
+#ifndef IMGUI_DISABLE_API
+
 // DirectX
 #include <stdio.h>
 #include <d3d11.h>
@@ -635,3 +637,5 @@ static void ImGui_ImplDX11_ShutdownPlatformInterface()
 {
     ImGui::DestroyPlatformWindows();
 }
+
+#endif // IMGUI_DISABLE_API

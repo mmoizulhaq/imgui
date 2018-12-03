@@ -85,6 +85,8 @@ Index of this file:
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
 #endif
 
+#ifndef IMGUI_DISABLE_API
+
 //-----------------------------------------------------------------------------
 // Forward declarations and basic types
 //-----------------------------------------------------------------------------
@@ -2277,3 +2279,5 @@ struct ImGuiViewport
 #ifdef IMGUI_INCLUDE_IMGUI_USER_H
 #include "imgui_user.h"
 #endif
+
+#endif // IMGUI_DISABLE_API
