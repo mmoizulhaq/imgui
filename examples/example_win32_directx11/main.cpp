@@ -8,6 +8,10 @@
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
 #include <tchar.h>
+#ifndef IMGUI_DISABLE_API
+#include <XInput.h>
+#pragma comment(lib, "xinput.lib") 
+#endif // IMGUI_DISABLE_API
 
 // Data
 static ID3D11Device*            g_pd3dDevice = NULL;
@@ -113,6 +117,37 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
+#ifndef IMGUI_DISABLE_API
+void UpdateXInput()
+{
+    XINPUT_STATE state;
+    if(XInputGetState(0, &state) == 0)
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        const XINPUT_GAMEPAD& gamepad = state.Gamepad;
+
+        io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
+
+        io.NavInputs[ImGuiNavInput_Activate   ] = gamepad.wButtons & XINPUT_GAMEPAD_A                    ? 1.0f : 0.0f; // activate / open / toggle / tweak value       // e.g. Cross  (PS4), A (Xbox), A (Switch), Space (Keyboard)
+        io.NavInputs[ImGuiNavInput_Cancel     ] = gamepad.wButtons & XINPUT_GAMEPAD_B                    ? 1.0f : 0.0f; // cancel / close / exit                        // e.g. Circle (PS4), B (Xbox), B (Switch), Escape (Keyboard)
+        io.NavInputs[ImGuiNavInput_Input      ] = gamepad.wButtons & XINPUT_GAMEPAD_Y                    ? 1.0f : 0.0f; // text input / on-screen keyboard              // e.g. Triang.(PS4), Y (Xbox), X (Switch), Return (Keyboard)
+        io.NavInputs[ImGuiNavInput_Menu       ] = gamepad.wButtons & XINPUT_GAMEPAD_X                    ? 1.0f : 0.0f; // tap: toggle menu / hold: focus, move, resize // e.g. Square (PS4), X (Xbox), Y (Switch), Alt (Keyboard)
+        io.NavInputs[ImGuiNavInput_DpadLeft   ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT            ? 1.0f : 0.0f; // move / tweak / resize window (w/ PadMenu)    // e.g. D-pad Left/Right/Up/Down (Gamepads), Arrow keys (Keyboard)
+        io.NavInputs[ImGuiNavInput_DpadRight  ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT           ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_DpadUp     ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP              ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_DpadDown   ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN            ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_LStickLeft ] = gamepad.sThumbLX < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; // scroll / move window (w/ PadMenu)            // e.g. Left Analog Stick Left/Right/Up/Down
+        io.NavInputs[ImGuiNavInput_LStickRight] = gamepad.sThumbLX >  XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_LStickUp   ] = gamepad.sThumbLY >  XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_LStickDown ] = gamepad.sThumbLY < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_FocusPrev  ] = ((float)gamepad.bLeftTrigger ) / 255.0f                             ; // next window (w/ PadMenu)                     // e.g. L1 or L2 (PS4), LB or LT (Xbox), L or ZL (Switch)
+        io.NavInputs[ImGuiNavInput_FocusNext  ] = ((float)gamepad.bRightTrigger) / 255.0f                             ; // prev window (w/ PadMenu)                     // e.g. R1 or R2 (PS4), RB or RT (Xbox), R or ZL (Switch)
+        io.NavInputs[ImGuiNavInput_TweakSlow  ] = gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER        ? 1.0f : 0.0f; // slower tweaks                                // e.g. L1 or L2 (PS4), LB or LT (Xbox), L or ZL (Switch)
+        io.NavInputs[ImGuiNavInput_TweakFast  ] = gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER       ? 1.0f : 0.0f; // faster tweaks                                // e.g. R1 or R2 (PS4), RB or RT (Xbox), R or ZL (Switch)
+    }
+}
+#endif // IMGUI_DISABLE_API
+
 int main(int, char**)
 {
 #ifndef IMGUI_DISABLE_API
@@ -142,6 +177,7 @@ int main(int, char**)
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;        // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
     //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
@@ -149,7 +185,7 @@ int main(int, char**)
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;     // FIXME-DPI: THIS CURRENTLY DOESN'T WORK AS EXPECTED. DON'T USE IN USER APP!
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // FIXME-DPI
     io.ConfigResizeWindowsFromEdges = true;
-    io.ConfigDockingWithShift = true;
+    //io.ConfigDockingWithShift = true;
 
     // Setup Platform/Renderer bindings
     ImGui_ImplWin32_Init(hwnd);
@@ -162,7 +198,6 @@ int main(int, char**)
     ImGuiStyle& style = ImGui::GetStyle();
     style.WindowRounding = 0.0f;                                // When viewports are enabled it is preferable to disable WinodwRounding
     style.Colors[ImGuiCol_WindowBg].w = 1.0f;                   // When viewports are enabled it is preferable to disable WindowBg alpha
-
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them. 
@@ -203,6 +238,9 @@ int main(int, char**)
         }
 
 #ifndef IMGUI_DISABLE_API
+        // update XInput
+        UpdateXInput();
+
         // Start the Dear ImGui frame
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
