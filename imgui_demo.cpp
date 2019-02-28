@@ -50,6 +50,8 @@ Index of this file:
 #endif
 
 #include "imgui.h"
+#include "imgui_internal.h"
+#include "imgui_extra.h"
 
 #ifndef IMGUI_DISABLE_API
 
@@ -179,6 +181,7 @@ static void ShowDemoWindowLayout();
 static void ShowDemoWindowPopups();
 static void ShowDemoWindowColumns();
 static void ShowDemoWindowMisc();
+static void ShowDemoWindowExtra();
 
 // Demonstrate most Dear ImGui features (this is big function!)
 // You may execute this function to experiment with the UI and understand what it does. You may then search for keywords in the code when you are interested by a specific feature.
@@ -423,6 +426,7 @@ void ImGui::ShowDemoWindow(bool* p_open)
     ShowDemoWindowPopups();
     ShowDemoWindowColumns();
     ShowDemoWindowMisc();
+    ShowDemoWindowExtra();
 
     // End of ShowDemoWindow()
     ImGui::End();
@@ -2565,6 +2569,72 @@ static void ShowDemoWindowMisc()
                     ImGui::SetMouseCursor(i);
             }
             ImGui::TreePop();
+        }
+    }
+}
+
+namespace math
+{
+    const float PI = 3.14159265359f;
+
+    float RadiansToDegrees(const float radians)
+    {
+        return radians * (180.0f / PI);
+    }
+
+    float DegreesToRadians(const float degrees)
+    {
+        return degrees * (PI / 180.0f);
+    }
+}
+
+float SineFunction(float degrees)
+{
+    return math::RadiansToDegrees(sin(math::DegreesToRadians(degrees)));
+}
+
+float CosineFunction(float degrees)
+{
+    return math::RadiansToDegrees(cos(math::DegreesToRadians(degrees)));
+}
+
+static void ShowDemoWindowExtra()
+{
+    if (ImGui::CollapsingHeader("Graphs"))
+    {
+        const unsigned int values_count = 100;
+        static bool has_random_points = false;
+        static ImVec2 random_points[values_count];
+        if(!has_random_points)
+        {
+            for(int i = 0; i < values_count; ++i)
+            {
+                random_points[i] = ImVec2((rand() % 1000) - 500, (rand() % 1000) - 500);
+            }
+            has_random_points = true;
+        }
+
+        ImGui::SetNextGraphPosition(0, 0, ImGuiCond_Once);
+        ImGui::SetNextGraphZoomScale(1, ImGuiCond_Once);
+        ImGui::SetNextGraphGridStride(0.1f, 0.1f, ImGuiCond_Once);
+        ImGui::SetNextGraphAxesLabelFormat("%8.4f", ImGuiCond_Once);
+        if(ImGui::BeginGraph("Graph Test", ImVec2(500, 500)))
+        {
+            ImGuiGraph* graph = ImGui::GetCurrentGraph();
+
+            ImGui::PushStyleColor(ImGuiCol_PlotLinesHovered, 0xFF000000);
+
+            ImGui::PushStyleColor(ImGuiCol_PlotLines, 0xFF0000FF);
+            graph->AddLineFunction("Sine", SineFunction, 90.0f, -360.0f, 360.0f);
+
+            ImGui::PushStyleColor(ImGuiCol_PlotLines, 0xFF00FF00);
+            graph->AddLineFunction("Cosine", CosineFunction, 90.0f, -360.0f, 360.0f); 
+
+            ImGui::PushStyleColor(ImGuiCol_PlotLines, 0xFFFF0000);
+            graph->AddPoints("Random Points", random_points, values_count);
+
+            ImGui::PopStyleColor(4);
+            ImGui::EndGraph();
         }
     }
 }
