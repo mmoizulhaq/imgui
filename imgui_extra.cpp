@@ -226,10 +226,8 @@ ImGuiExtraContext::~ImGuiExtraContext()
 
 void ImGui::AddInputString(const ImWchar* str)
 {
-    // We can't pass more wchars than ImGuiIO::InputCharacters[] can hold so don't convert more
-    const int wchars_buf_len = sizeof(ImGui::GetIO().InputCharacters) / sizeof(ImWchar);
     const int input_buf_len  = ImStrlenW(str);
-    for (int i = 0; i < wchars_buf_len && i < input_buf_len; ++i)
+    for (int i = 0; i < input_buf_len; ++i)
         ImGui::GetIO().AddInputCharacter(str[i]);
 }
 
