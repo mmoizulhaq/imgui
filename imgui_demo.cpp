@@ -2760,6 +2760,33 @@ static void ShowDemoWindowExtra()
             ImGui::EndGraph();
         }
     }
+
+    if (ImGui::CollapsingHeader("Custom Behaviors"))
+    {
+        ImGui::Text("Example: Tab for Navigate and Commit");
+
+        const int key_index = GImGui->IO.KeyMap[ImGuiKey_Tab];
+        const bool isTabbing = ImGui::IsKeyDown(key_index);
+        static char value_buffer[10][256];
+        static char buffer[10][256];
+        for(int i = 0; i < 10; ++i)
+        {
+            ImGui::PushID(i);
+            ImGui::Text("Value = %s", value_buffer[i]); 
+            ImGui::SameLine();
+            bool result = ImGui::InputText("", buffer[i], 256, ImGuiInputTextFlags_EnterReturnsTrue);
+            bool deactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
+            if(result || (deactivatedAfterEdit && isTabbing)) // handle commit & (optional) handle nav commit
+            {
+                memcpy(value_buffer[i], buffer[i], 256);
+            }
+            else if(deactivatedAfterEdit) // (optional) handle discard
+            {
+                memcpy(buffer[i], value_buffer[i], 256);
+            }
+            ImGui::PopID();
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
