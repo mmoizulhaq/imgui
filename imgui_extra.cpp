@@ -61,18 +61,18 @@ void ImGuiGraphPlotLineEx(ImGuiGraphPlotLineType plot_type, const char* label, v
     ImGuiGraph* graph = ImGui::GetCurrentGraph();
     ImGuiIO& io = ImGui::GetIO();
 
-    auto GetYValue = [&](int index, float x) -> float
+    auto GetYValueFromIndexOrX = [&](int index, float x) -> float
     {
         float y_value = 0.0f;
         switch(plot_type)
         {
         case ImGuiGraphPlotLineType_LineFromArray:
             y_value = ((float(*)(void*, int))function)(data, index);
-            y_value = graph->ContentRect.Max.y - graph->Data.Pos.y - (y_value * graph->Data.ZoomScale);
+            y_value = graph->ContentRectBR.y - graph->Data.Pos.y - (y_value * graph->Data.ZoomScale);
             break;
         case ImGuiGraphPlotLineType_LineFunction:
             y_value = ((float(*)(void*, float))function)(data, x);
-            y_value = graph->ContentRect.Max.y - graph->Data.Pos.y - (y_value * graph->Data.ZoomScale);
+            y_value = graph->ContentRectBR.y - graph->Data.Pos.y - (y_value * graph->Data.ZoomScale);
             break;
         default:
             IM_ASSERT(0);
@@ -87,37 +87,37 @@ void ImGuiGraphPlotLineEx(ImGuiGraphPlotLineType plot_type, const char* label, v
     }
 
     float x0 = min_x;
-    float y0 = GetYValue(0, min_x);
-    x0 = graph->ContentRect.Min.x + graph->Data.Pos.x + (x0 * graph->Data.ZoomScale);
+    float y0 = GetYValueFromIndexOrX(0, min_x);
+    x0 = graph->ContentRectTL.x + graph->Data.Pos.x + (x0 * graph->Data.ZoomScale);
     for(int i = 1; i <= values_count; ++i)
     {
         float x1 = ImLerp(min_x, max_x, static_cast<float>(i) / static_cast<float>(values_count));
-        const float y1 = GetYValue(i, x1);
-        x1 = graph->ContentRect.Min.x + graph->Data.Pos.x + (x1 * graph->Data.ZoomScale);
+        const float y1 = GetYValueFromIndexOrX(i, x1);
+        x1 = graph->ContentRectTL.x + graph->Data.Pos.x + (x1 * graph->Data.ZoomScale);
 
-        if(x0 > graph->ContentRect.Max.x && x1 > graph->ContentRect.Max.x)
+        if(x0 > graph->ContentRectBR.x && x1 > graph->ContentRectBR.x)
         {
             break;
         }
 
-        const ImRect rect(x0, graph->ContentRect.Min.y, x1, graph->ContentRect.Max.y);
+        const ImRect rect(x0, graph->ContentRectTL.y, x1, graph->ContentRectBR.y);
         ImColor col = ImGui::GetColorU32(ImGuiCol_PlotLines);
         if(rect.Contains(io.MousePos))
         {
             if(!(graph->Flags & ImGuiGraphFlags_NoToolTips))
             {
-                const float x0_gs = (x0 - graph->Data.Pos.x - graph->ContentRect.Min.x) * (1.0f / graph->Data.ZoomScale);
-                const float y0_gs = (y0 + graph->Data.Pos.y - graph->ContentRect.Max.y) * (1.0f / graph->Data.ZoomScale);
-                const float x1_gs = (x1 - graph->Data.Pos.x - graph->ContentRect.Min.x) * (1.0f / graph->Data.ZoomScale);
-                const float y1_gs = (y1 + graph->Data.Pos.y - graph->ContentRect.Max.y) * (1.0f / graph->Data.ZoomScale);
-                ImGuiGraph::ToolTipData data = { label, ImVec2(x0_gs, -y0_gs), ImVec2(x1_gs, -y1_gs), col };
-                graph->ToolTipDatas.push_back(data);
+                const float x0_gs = (x0 - graph->Data.Pos.x - graph->ContentRectTL.x) * (1.0f / graph->Data.ZoomScale);
+                const float y0_gs = (y0 + graph->Data.Pos.y - graph->ContentRectBR.y) * (1.0f / graph->Data.ZoomScale);
+                const float x1_gs = (x1 - graph->Data.Pos.x - graph->ContentRectTL.x) * (1.0f / graph->Data.ZoomScale);
+                const float y1_gs = (y1 + graph->Data.Pos.y - graph->ContentRectBR.y) * (1.0f / graph->Data.ZoomScale);
+                ImGuiGraph::ToolTipData tooltip_data = { label, ImVec2(x0_gs, -y0_gs), ImVec2(x1_gs, -y1_gs), col };
+                graph->ToolTipDatas.push_back(tooltip_data);
             }
 
             col = ImGui::GetColorU32(ImGuiCol_PlotLinesHovered);
         }
 
-        if((y0 > graph->ContentRect.Min.y && y0 < graph->ContentRect.Max.y) || (y1 > graph->ContentRect.Min.y && y1 < graph->ContentRect.Max.y))
+        if((y0 > graph->ContentRectTL.y && y0 < graph->ContentRectBR.y) || (y1 > graph->ContentRectTL.y && y1 < graph->ContentRectBR.y))
         {
             graph->Window->DrawList->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), col, thickness);
         }
@@ -172,14 +172,15 @@ void ImGuiGraphPlotPointsEx(const char* label, void* function, void* data, int v
     for(int i = 0; i < values_count; ++i)
     {
         ImVec2 point = ((ImVec2(*)(void*, int))function)(data, i);
-        point.x = graph->ContentRect.Min.x + graph->Data.Pos.x + (point.x * graph->Data.ZoomScale);
-        point.y = graph->ContentRect.Max.y - graph->Data.Pos.y - (point.y * graph->Data.ZoomScale);
+        point.x = graph->ContentRectTL.x + graph->Data.Pos.x + (point.x * graph->Data.ZoomScale);
+        point.y = graph->ContentRectBR.y - graph->Data.Pos.y - (point.y * graph->Data.ZoomScale);
 
         // TODO tooltips for points either:
         // - some configurable radius around mouse to grab
         // - exact picking with mouse
 
-        if(graph->ContentRect.Contains(point))
+        ImRect content_rect(graph->ContentRectTL, graph->ContentRectBR);
+        if(content_rect.Contains(point))
         {
             // MAYBE configuration for hollow points
             graph->Window->DrawList->AddCircleFilled(point, radius, ImGui::GetColorU32(ImGuiCol_PlotLines));
@@ -250,8 +251,12 @@ ImGuiGraph* ImGui::FindGraphByID(ImGuiID id)
 
 ImGuiGraph* ImGui::FindGraphByName(const char* name)
 {
-    ImGuiID id = ImHash(name, 0);
-    return FindGraphByID(id);
+    return FindGraphByID(GetID(name));
+}
+
+ImGuiID ImGui::GetImGuiID(const char* name)
+{
+    return ImHashStr(name, 0);
 }
 
 //-----------------------------------------------------------------------------
@@ -1094,14 +1099,19 @@ void CalcFrame(ImGuiGraph* graph, ImVec2 desired_size)
     if (size.y <= 0.0f)
         size.y = ImMax(full_size.y + size.y, 4.0f);
 
-    graph->ControlRect = ImRect(window->DC.CursorPos, window->DC.CursorPos + size);
-    graph->ContentRect = ImRect(graph->ControlRect.Min + graph->FramePadding, graph->ControlRect.Max - graph->FramePadding);
+    ImRect control_rect(window->DC.CursorPos, window->DC.CursorPos + size);
+    ImRect content_rect(control_rect.Min + graph->FramePadding, control_rect.Max - graph->FramePadding);
+
+    graph->ControlRectTL = control_rect.GetTL();
+    graph->ControlRectBR = control_rect.GetBR();
+    graph->ContentRectTL = content_rect.GetTL();
+    graph->ContentRectBR = content_rect.GetBR();
 }
 
 void CalcGraph(ImGuiGraph* graph)
 {
     // handle modification from mouse move 
-    if(!(graph->Flags & ImGuiGraphFlags_NoMove) && ImGui::IsMouseDragging() && ImGui::IsMouseHoveringRect(graph->ContentRect.Min, graph->ContentRect.Max))
+    if(!(graph->Flags & ImGuiGraphFlags_NoMove) && ImGui::IsMouseDragging() && ImGui::IsMouseHoveringRect(graph->ContentRectTL, graph->ContentRectBR))
     {
         ImGuiIO& io = ImGui::GetIO();
         const ImVec2 delta = io.MouseDelta;
@@ -1118,7 +1128,7 @@ void CalcGraph(ImGuiGraph* graph)
     }
 
     // handle modification from zoom
-    if(!(graph->Flags & ImGuiGraphFlags_NoZoom) && ImGui::IsMouseHoveringRect(graph->ControlRect.Min, graph->ControlRect.Max))
+    if(!(graph->Flags & ImGuiGraphFlags_NoZoom) && ImGui::IsMouseHoveringRect(graph->ContentRectTL, graph->ContentRectBR))
     {
         static const float IM_GRAPH_ZOOM_DELTA_FACTOR = 0.05f;
         static const float IM_GRAPH_ZOOM_SCALE_MIN = 0.01f; // out
@@ -1134,7 +1144,7 @@ void CalcGraph(ImGuiGraph* graph)
             // zoom to cursor
 
             ImRect rect(ImVec2(), graph->Stride);
-            rect.Translate(ImVec2(graph->ContentRect.Min.x + graph->Data.Pos.x, graph->ContentRect.Max.y - graph->Data.Pos.y));
+            rect.Translate(ImVec2(graph->ContentRectTL.x + graph->Data.Pos.x, graph->ContentRectBR.y - graph->Data.Pos.y));
 
             ImVec2 d = rect.GetSize() - (rect.GetSize() * (1.0f + factor));
             ImVec2 p = (io.MousePos - rect.GetTL()) / rect.GetSize();
@@ -1200,7 +1210,7 @@ void CalcGraph(ImGuiGraph* graph)
 void PlotGraph(ImGuiGraph* graph)
 {
     ImGuiContext& g = *ImGui::GetCurrentContext();
-    ImGui::RenderFrame(graph->ContentRect.Min, graph->ContentRect.Max, ImGui::GetColorU32(ImGuiExtraCol_GraphBackground), true, g.Style.FrameRounding);
+    ImGui::RenderFrame(graph->ContentRectTL, graph->ContentRectBR, ImGui::GetColorU32(ImGuiExtraCol_GraphBackground), true, g.Style.FrameRounding);
 
     const float offset_x = ImFmod(graph->Data.Pos.x, graph->Stride.x * graph->Factor);
     const float offset_y = ImFmod(graph->Data.Pos.y, graph->Stride.y * graph->Factor);
@@ -1209,16 +1219,16 @@ void PlotGraph(ImGuiGraph* graph)
 
     if(!(graph->Flags & ImGuiGraphFlags_NoGridX))
     {
-        for(float x = graph->ContentRect.Min.x + offset_x; x < graph->ContentRect.Max.x; x += graph->Stride.x * graph->Factor, value.x += graph->FactoredStride.x)
+        for(float x = graph->ContentRectTL.x + offset_x; x < graph->ContentRectBR.x; x += graph->Stride.x * graph->Factor, value.x += graph->FactoredStride.x)
         {
-            graph->Window->DrawList->AddLine(ImVec2(x, graph->ContentRect.Min.y), ImVec2(x, graph->ContentRect.Max.y), ImGui::GetColorU32(ImGuiExtraCol_GraphGrid), graph->Data.GridThickness);
+            graph->Window->DrawList->AddLine(ImVec2(x, graph->ContentRectTL.y), ImVec2(x, graph->ContentRectBR.y), ImGui::GetColorU32(ImGuiExtraCol_GraphGrid), graph->Data.GridThickness);
 
             if(!(graph->Flags & ImGuiGraphFlags_NoGridLabels))
             {
                 if (value.x == -0.0) { value.x = +0.0; } // minus zero
                 ImFormatString(buffer, 256, graph->Data.AxesFormat, value.x); 
                 const ImVec2 label_size = ImGui::CalcTextSize(buffer, NULL, true);
-                graph->Window->DrawList->AddText(ImVec2(x, graph->ContentRect.Max.y - label_size.y), ImGui::GetColorU32(ImGuiExtraCol_GraphGridText), buffer);
+                graph->Window->DrawList->AddText(ImVec2(x, graph->ContentRectBR.y - label_size.y), ImGui::GetColorU32(ImGuiExtraCol_GraphGridText), buffer);
             }
         }
     }
@@ -1226,25 +1236,25 @@ void PlotGraph(ImGuiGraph* graph)
     if(!(graph->Flags & ImGuiGraphFlags_NoGridY))
     {
         // Due to inverted y we render from max - y to min instead of min to max
-        for(float y = graph->ContentRect.Max.y - offset_y; y > graph->ContentRect.Min.y; y -= graph->Stride.y * graph->Factor, value.y += graph->FactoredStride.y)
+        for(float y = graph->ContentRectBR.y - offset_y; y > graph->ContentRectTL.y; y -= graph->Stride.y * graph->Factor, value.y += graph->FactoredStride.y)
         {
-            graph->Window->DrawList->AddLine(ImVec2(graph->ContentRect.Min.x, y), ImVec2(graph->ContentRect.Max.x, y), ImGui::GetColorU32(ImGuiExtraCol_GraphGrid), graph->Data.GridThickness);
+            graph->Window->DrawList->AddLine(ImVec2(graph->ContentRectTL.x, y), ImVec2(graph->ContentRectBR.x, y), ImGui::GetColorU32(ImGuiExtraCol_GraphGrid), graph->Data.GridThickness);
 
             if(!(graph->Flags & ImGuiGraphFlags_NoGridLabels))
             {
                 if (value.y == -0.0) { value.y = +0.0; } // minus zero
                 ImFormatString(buffer, 256, graph->Data.AxesFormat, value.y); 
                 const ImVec2 label_size = ImGui::CalcTextSize(buffer, NULL, true);
-                graph->Window->DrawList->AddText(ImVec2(graph->ContentRect.Min.x, y), ImGui::GetColorU32(ImGuiExtraCol_GraphGridText), buffer);
+                graph->Window->DrawList->AddText(ImVec2(graph->ContentRectTL.x, y), ImGui::GetColorU32(ImGuiExtraCol_GraphGridText), buffer);
             }
         }
     }
 
     if(!(graph->Flags & ImGuiGraphFlags_NoAxisX))
     {
-        const float y = graph->ContentRect.Max.y - graph->Data.Pos.y - (graph->Data.AxesPos.y * graph->Data.ZoomScale);
-        const float x0 = graph->ContentRect.Min.x;
-        const float x1 = graph->ContentRect.Max.x;
+        const float y = graph->ContentRectBR.y - graph->Data.Pos.y - (graph->Data.AxesPos.y * graph->Data.ZoomScale);
+        const float x0 = graph->ContentRectTL.x;
+        const float x1 = graph->ContentRectBR.x;
         graph->Window->DrawList->AddLine(ImVec2(x0, y), ImVec2(x1, y), ImGui::GetColorU32(ImGuiCol_Text), graph->Data.AxesThickness);
 
         if(!(graph->Flags & ImGuiGraphFlags_NoAxesLabels))
@@ -1260,9 +1270,9 @@ void PlotGraph(ImGuiGraph* graph)
 
     if(!(graph->Flags & ImGuiGraphFlags_NoAxisY))
     {
-        const float x = graph->ContentRect.Min.x + graph->Data.Pos.x + (graph->Data.AxesPos.x * graph->Data.ZoomScale);
-        const float y0 = graph->ContentRect.Max.y;
-        const float y1 = graph->ContentRect.Min.y;
+        const float x = graph->ContentRectTL.x + graph->Data.Pos.x + (graph->Data.AxesPos.x * graph->Data.ZoomScale);
+        const float y0 = graph->ContentRectBR.y;
+        const float y1 = graph->ContentRectTL.y;
         graph->Window->DrawList->AddLine(ImVec2(x, y0), ImVec2(x, y1), ImGui::GetColorU32(ImGuiCol_Text), graph->Data.AxesThickness);
 
         if(!(graph->Flags & ImGuiGraphFlags_NoAxesLabels))

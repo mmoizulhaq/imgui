@@ -13,6 +13,8 @@
 // Extra forward declarations and basic types
 //-----------------------------------------------------------------------------
 
+struct ImGuiWindow;
+
 typedef int ImGuiGraphFlags; 
 typedef int ImGuiExtraCol; 
 
@@ -101,8 +103,10 @@ struct IMGUI_API ImGuiGraph
     ImVec2          FactoredStride;  // Gactored stride value
     float           Ratio;           // Auto stride ratio (Stride / OriginalStride) adjusted by best fitting bound
     float           Factor;          // 1 / Ratio
-    ImRect          ControlRect;     // Full rect without frame padding
-    ImRect          ContentRect;     // Content rect with frame padding
+    ImVec2          ControlRectTL;   // Full rect without frame padding. Note, using ImVec2 instead of ImRect to remove dependancy on imgui_internal in header
+    ImVec2          ControlRectBR;
+    ImVec2          ContentRectTL;   // Content rect with frame padding. Note, using ImVec2 instead of ImRect to remove dependancy on imgui_internal in header
+    ImVec2          ContentRectBR;
     ImVec2          FramePadding;    // Frame padding from style
 
     struct ToolTipData
@@ -164,6 +168,7 @@ namespace ImGui
     // No guarantee of forward compatibility here.
     IMGUI_API ImGuiGraph* FindGraphByID(ImGuiID id);
     IMGUI_API ImGuiGraph* FindGraphByName(const char* name);
+    IMGUI_API ImGuiID GetImGuiID(const char* name);
 
     // Utilities
     IMGUI_API void AddInputString(const ImWchar* str);
@@ -249,6 +254,5 @@ namespace ImGui
     IMGUI_API void SetNextGraphAxesLineThickness(float thickness, ImGuiCond cond = 0);
     IMGUI_API void SetNextGraphAxesLabelFormat(const char* format,  ImGuiCond cond = 0);
 } // namespace ImGui
-
 
 #endif // IMGUI_DISABLE_API
