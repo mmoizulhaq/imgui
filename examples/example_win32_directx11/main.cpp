@@ -19,135 +19,15 @@ static ID3D11DeviceContext*     g_pd3dDeviceContext = NULL;
 static IDXGISwapChain*          g_pSwapChain = NULL;
 static ID3D11RenderTargetView*  g_mainRenderTargetView = NULL;
 
-void CreateRenderTarget()
-{
-    ID3D11Texture2D* pBackBuffer;
-    g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
-    g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
-    pBackBuffer->Release();
-}
+// Forward declarations of helper functions
+bool CreateDeviceD3D(HWND hWnd);
+void CleanupDeviceD3D();
+void CreateRenderTarget();
+void CleanupRenderTarget();
+LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+void UpdateXInput();
 
-void CleanupRenderTarget()
-{
-    if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = NULL; }
-}
-
-HRESULT CreateDeviceD3D(HWND hWnd)
-{
-    // Setup swap chain
-    DXGI_SWAP_CHAIN_DESC sd;
-    ZeroMemory(&sd, sizeof(sd));
-    sd.BufferCount = 2;
-    sd.BufferDesc.Width = 0;
-    sd.BufferDesc.Height = 0;
-    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    sd.BufferDesc.RefreshRate.Numerator = 60;
-    sd.BufferDesc.RefreshRate.Denominator = 1;
-    sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    sd.OutputWindow = hWnd;
-    sd.SampleDesc.Count = 1;
-    sd.SampleDesc.Quality = 0;
-    sd.Windowed = TRUE;
-    sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-
-    UINT createDeviceFlags = 0;
-    //createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
-    D3D_FEATURE_LEVEL featureLevel;
-    const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
-    if (D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext) != S_OK)
-        return E_FAIL;
-
-    CreateRenderTarget();
-
-    return S_OK;
-}
-
-void CleanupDeviceD3D()
-{
-    CleanupRenderTarget();
-    if (g_pSwapChain) { g_pSwapChain->Release(); g_pSwapChain = NULL; }
-    if (g_pd3dDeviceContext) { g_pd3dDeviceContext->Release(); g_pd3dDeviceContext = NULL; }
-    if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = NULL; }
-}
-
-#ifndef WM_DPICHANGED
-#define WM_DPICHANGED 0x02E0 // From Windows SDK 8.1+ headers
-#endif
-
-#ifndef IMGUI_DISABLE_API
-extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-#endif // IMGUI_DISABLE_API
-LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-#ifndef IMGUI_DISABLE_API
-    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
-        return true;
-#endif // IMGUI_DISABLE_API
-
-    switch (msg)
-    {
-    case WM_SIZE:
-        if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED)
-        {
-            CleanupRenderTarget();
-            g_pSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
-            CreateRenderTarget();
-        }
-        return 0;
-    case WM_SYSCOMMAND:
-        if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
-            return 0;
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
-#ifndef IMGUI_DISABLE_API
-    case WM_DPICHANGED:
-        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DpiEnableScaleViewports)
-        {
-            //const int dpi = HIWORD(wParam);
-            //printf("WM_DPICHANGED to %d (%.0f%%)\n", dpi, (float)dpi / 96.0f * 100.0f);
-            const RECT* suggested_rect = (RECT*)lParam;
-            ::SetWindowPos(hWnd, NULL, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
-        }
-        break;
-#endif // IMGUI_DISABLE_API
-    }
-    return DefWindowProc(hWnd, msg, wParam, lParam);
-}
-
-#ifndef IMGUI_DISABLE_API
-void UpdateXInput()
-{
-    XINPUT_STATE state;
-    if(XInputGetState(0, &state) == 0)
-    {
-        ImGuiIO& io = ImGui::GetIO();
-        const XINPUT_GAMEPAD& gamepad = state.Gamepad;
-
-        io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
-
-        io.NavInputs[ImGuiNavInput_Activate   ] = gamepad.wButtons & XINPUT_GAMEPAD_A                    ? 1.0f : 0.0f; // activate / open / toggle / tweak value       // e.g. Cross  (PS4), A (Xbox), A (Switch), Space (Keyboard)
-        io.NavInputs[ImGuiNavInput_Cancel     ] = gamepad.wButtons & XINPUT_GAMEPAD_B                    ? 1.0f : 0.0f; // cancel / close / exit                        // e.g. Circle (PS4), B (Xbox), B (Switch), Escape (Keyboard)
-        io.NavInputs[ImGuiNavInput_Input      ] = gamepad.wButtons & XINPUT_GAMEPAD_Y                    ? 1.0f : 0.0f; // text input / on-screen keyboard              // e.g. Triang.(PS4), Y (Xbox), X (Switch), Return (Keyboard)
-        io.NavInputs[ImGuiNavInput_Menu       ] = gamepad.wButtons & XINPUT_GAMEPAD_X                    ? 1.0f : 0.0f; // tap: toggle menu / hold: focus, move, resize // e.g. Square (PS4), X (Xbox), Y (Switch), Alt (Keyboard)
-        io.NavInputs[ImGuiNavInput_DpadLeft   ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT            ? 1.0f : 0.0f; // move / tweak / resize window (w/ PadMenu)    // e.g. D-pad Left/Right/Up/Down (Gamepads), Arrow keys (Keyboard)
-        io.NavInputs[ImGuiNavInput_DpadRight  ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT           ? 1.0f : 0.0f; //
-        io.NavInputs[ImGuiNavInput_DpadUp     ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP              ? 1.0f : 0.0f; //
-        io.NavInputs[ImGuiNavInput_DpadDown   ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN            ? 1.0f : 0.0f; //
-        io.NavInputs[ImGuiNavInput_LStickLeft ] = gamepad.sThumbLX < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; // scroll / move window (w/ PadMenu)            // e.g. Left Analog Stick Left/Right/Up/Down
-        io.NavInputs[ImGuiNavInput_LStickRight] = gamepad.sThumbLX >  XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; //
-        io.NavInputs[ImGuiNavInput_LStickUp   ] = gamepad.sThumbLY >  XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; //
-        io.NavInputs[ImGuiNavInput_LStickDown ] = gamepad.sThumbLY < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; //
-        io.NavInputs[ImGuiNavInput_FocusPrev  ] = ((float)gamepad.bLeftTrigger ) / 255.0f                             ; // next window (w/ PadMenu)                     // e.g. L1 or L2 (PS4), LB or LT (Xbox), L or ZL (Switch)
-        io.NavInputs[ImGuiNavInput_FocusNext  ] = ((float)gamepad.bRightTrigger) / 255.0f                             ; // prev window (w/ PadMenu)                     // e.g. R1 or R2 (PS4), RB or RT (Xbox), R or ZL (Switch)
-        io.NavInputs[ImGuiNavInput_TweakSlow  ] = gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER        ? 1.0f : 0.0f; // slower tweaks                                // e.g. L1 or L2 (PS4), LB or LT (Xbox), L or ZL (Switch)
-        io.NavInputs[ImGuiNavInput_TweakFast  ] = gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER       ? 1.0f : 0.0f; // faster tweaks                                // e.g. R1 or R2 (PS4), RB or RT (Xbox), R or ZL (Switch)
-    }
-}
-#endif // IMGUI_DISABLE_API
-
+// Main code
 int main(int, char**)
 {
 #ifndef IMGUI_DISABLE_API
@@ -156,20 +36,20 @@ int main(int, char**)
 
     // Create application window
     WNDCLASSEX wc = { sizeof(WNDCLASSEX), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, _T("ImGui Example"), NULL };
-    RegisterClassEx(&wc);
-    HWND hwnd = CreateWindow(wc.lpszClassName, _T("Dear ImGui DirectX11 Example"), WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
+    ::RegisterClassEx(&wc);
+    HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("Dear ImGui DirectX11 Example"), WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, NULL, NULL, wc.hInstance, NULL);
 
     // Initialize Direct3D
-    if (CreateDeviceD3D(hwnd) < 0)
+    if (!CreateDeviceD3D(hwnd))
     {
         CleanupDeviceD3D();
-        UnregisterClass(wc.lpszClassName, wc.hInstance);
+        ::UnregisterClass(wc.lpszClassName, wc.hInstance);
         return 1;
     }
 
     // Show the window
-    ShowWindow(hwnd, SW_SHOWDEFAULT);
-    UpdateWindow(hwnd);
+    ::ShowWindow(hwnd, SW_SHOWDEFAULT);
+    ::UpdateWindow(hwnd);
 
     // Setup Dear ImGui context
 #ifndef IMGUI_DISABLE_API
@@ -184,6 +64,14 @@ int main(int, char**)
     //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;     // FIXME-DPI: THIS CURRENTLY DOESN'T WORK AS EXPECTED. DON'T USE IN USER APP!
     io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // FIXME-DPI
+    //io.ConfigViewportsNoTaskBarIcon = true;
+    //io.ConfigViewportsNoDefaultParent = true;
+    //io.ConfigDockingTabBarOnSingleWindows = true;
+    //io.ConfigDockingTransparentPayload = true;
+#if 1
+    io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleFonts;     // FIXME-DPI: THIS CURRENTLY DOESN'T WORK AS EXPECTED. DON'T USE IN USER APP!
+    io.ConfigFlags |= ImGuiConfigFlags_DpiEnableScaleViewports; // FIXME-DPI
+#endif
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -232,10 +120,10 @@ int main(int, char**)
         // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
         // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-        if (PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
+        if (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            ::TranslateMessage(&msg);
+            ::DispatchMessage(&msg);
             continue;
         }
 
@@ -285,6 +173,14 @@ int main(int, char**)
             ImGui::End();
         }
 
+        ImGui::Begin("NavClamp Example");
+        ImGui::Columns(2);
+        ImGui::SmallButton("Really really really really really really long text");
+        ImGui::NextColumn();
+        ImGui::SmallButton("Short text");
+        ImGui::NextColumn();
+        ImGui::End();
+
         // Rendering
         ImGui::Render();
         g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
@@ -310,8 +206,132 @@ int main(int, char**)
 #endif // IMGUI_DISABLE_API
 
     CleanupDeviceD3D();
-    DestroyWindow(hwnd);
-    UnregisterClass(wc.lpszClassName, wc.hInstance);
+    ::DestroyWindow(hwnd);
+    ::UnregisterClass(wc.lpszClassName, wc.hInstance);
 
     return 0;
 }
+
+// Helper functions
+#ifndef IMGUI_DISABLE_API
+bool CreateDeviceD3D(HWND hWnd)
+{
+    // Setup swap chain
+    DXGI_SWAP_CHAIN_DESC sd;
+    ZeroMemory(&sd, sizeof(sd));
+    sd.BufferCount = 2;
+    sd.BufferDesc.Width = 0;
+    sd.BufferDesc.Height = 0;
+    sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    sd.BufferDesc.RefreshRate.Numerator = 60;
+    sd.BufferDesc.RefreshRate.Denominator = 1;
+    sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+    sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    sd.OutputWindow = hWnd;
+    sd.SampleDesc.Count = 1;
+    sd.SampleDesc.Quality = 0;
+    sd.Windowed = TRUE;
+    sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+
+    UINT createDeviceFlags = 0;
+    //createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+    D3D_FEATURE_LEVEL featureLevel;
+    const D3D_FEATURE_LEVEL featureLevelArray[2] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_0, };
+    if (D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, createDeviceFlags, featureLevelArray, 2, D3D11_SDK_VERSION, &sd, &g_pSwapChain, &g_pd3dDevice, &featureLevel, &g_pd3dDeviceContext) != S_OK)
+        return false;
+
+    CreateRenderTarget();
+    return true;
+}
+
+void CleanupDeviceD3D()
+{
+    CleanupRenderTarget();
+    if (g_pSwapChain) { g_pSwapChain->Release(); g_pSwapChain = NULL; }
+    if (g_pd3dDeviceContext) { g_pd3dDeviceContext->Release(); g_pd3dDeviceContext = NULL; }
+    if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = NULL; }
+}
+
+void CreateRenderTarget()
+{
+    ID3D11Texture2D* pBackBuffer;
+    g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
+    g_pd3dDevice->CreateRenderTargetView(pBackBuffer, NULL, &g_mainRenderTargetView);
+    pBackBuffer->Release();
+}
+
+void CleanupRenderTarget()
+{
+    if (g_mainRenderTargetView) { g_mainRenderTargetView->Release(); g_mainRenderTargetView = NULL; }
+}
+
+#ifndef WM_DPICHANGED
+#define WM_DPICHANGED 0x02E0 // From Windows SDK 8.1+ headers
+#endif
+
+// Win32 message handler
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam))
+        return true;
+
+    switch (msg)
+    {
+    case WM_SIZE:
+        if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED)
+        {
+            CleanupRenderTarget();
+            g_pSwapChain->ResizeBuffers(0, (UINT)LOWORD(lParam), (UINT)HIWORD(lParam), DXGI_FORMAT_UNKNOWN, 0);
+            CreateRenderTarget();
+        }
+        return 0;
+    case WM_SYSCOMMAND:
+        if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
+            return 0;
+        break;
+    case WM_DESTROY:
+        ::PostQuitMessage(0);
+        return 0;
+    case WM_DPICHANGED:
+        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DpiEnableScaleViewports)
+        {
+            //const int dpi = HIWORD(wParam);
+            //printf("WM_DPICHANGED to %d (%.0f%%)\n", dpi, (float)dpi / 96.0f * 100.0f);
+            const RECT* suggested_rect = (RECT*)lParam;
+            ::SetWindowPos(hWnd, NULL, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        break;
+    }
+    return ::DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+void UpdateXInput()
+{
+    XINPUT_STATE state;
+    if(XInputGetState(0, &state) == 0)
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        const XINPUT_GAMEPAD& gamepad = state.Gamepad;
+
+        io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
+
+        io.NavInputs[ImGuiNavInput_Activate   ] = gamepad.wButtons & XINPUT_GAMEPAD_A                    ? 1.0f : 0.0f; // activate / open / toggle / tweak value       // e.g. Cross  (PS4), A (Xbox), A (Switch), Space (Keyboard)
+        io.NavInputs[ImGuiNavInput_Cancel     ] = gamepad.wButtons & XINPUT_GAMEPAD_B                    ? 1.0f : 0.0f; // cancel / close / exit                        // e.g. Circle (PS4), B (Xbox), B (Switch), Escape (Keyboard)
+        io.NavInputs[ImGuiNavInput_Input      ] = gamepad.wButtons & XINPUT_GAMEPAD_Y                    ? 1.0f : 0.0f; // text input / on-screen keyboard              // e.g. Triang.(PS4), Y (Xbox), X (Switch), Return (Keyboard)
+        io.NavInputs[ImGuiNavInput_Menu       ] = gamepad.wButtons & XINPUT_GAMEPAD_X                    ? 1.0f : 0.0f; // tap: toggle menu / hold: focus, move, resize // e.g. Square (PS4), X (Xbox), Y (Switch), Alt (Keyboard)
+        io.NavInputs[ImGuiNavInput_DpadLeft   ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT            ? 1.0f : 0.0f; // move / tweak / resize window (w/ PadMenu)    // e.g. D-pad Left/Right/Up/Down (Gamepads), Arrow keys (Keyboard)
+        io.NavInputs[ImGuiNavInput_DpadRight  ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT           ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_DpadUp     ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP              ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_DpadDown   ] = gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN            ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_LStickLeft ] = gamepad.sThumbLX < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; // scroll / move window (w/ PadMenu)            // e.g. Left Analog Stick Left/Right/Up/Down
+        io.NavInputs[ImGuiNavInput_LStickRight] = gamepad.sThumbLX >  XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_LStickUp   ] = gamepad.sThumbLY >  XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_LStickDown ] = gamepad.sThumbLY < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE ? 1.0f : 0.0f; //
+        io.NavInputs[ImGuiNavInput_FocusPrev  ] = ((float)gamepad.bLeftTrigger ) / 255.0f                             ; // next window (w/ PadMenu)                     // e.g. L1 or L2 (PS4), LB or LT (Xbox), L or ZL (Switch)
+        io.NavInputs[ImGuiNavInput_FocusNext  ] = ((float)gamepad.bRightTrigger) / 255.0f                             ; // prev window (w/ PadMenu)                     // e.g. R1 or R2 (PS4), RB or RT (Xbox), R or ZL (Switch)
+        io.NavInputs[ImGuiNavInput_TweakSlow  ] = gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER        ? 1.0f : 0.0f; // slower tweaks                                // e.g. L1 or L2 (PS4), LB or LT (Xbox), L or ZL (Switch)
+        io.NavInputs[ImGuiNavInput_TweakFast  ] = gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER       ? 1.0f : 0.0f; // faster tweaks                                // e.g. R1 or R2 (PS4), RB or RT (Xbox), R or ZL (Switch)
+    }
+}
+#endif // IMGUI_DISABLE_API
