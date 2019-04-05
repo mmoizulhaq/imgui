@@ -122,19 +122,19 @@ struct IMGUI_API ImGuiGraph
     ImGuiGraph();
 
     // Add line data set from array `y = values[index]`
-    IMGUI_API void AddLineArray(const char* label, const float* values, int values_count, float min_x = 0.0f, float max_x = 100.0f, float thickness = 2.0f);
+    void AddLineArray(const char* label, const float* values, int values_count, float min_x = 0.0f, float max_x = 100.0f, float thickness = 2.0f);
     // Add line data set from function using index with data source `y = function(data, index)`
-    IMGUI_API void AddLineArray(const char* label, float(*function)(void* data, int index), void* data, int values_count, float min_x = 0.0f, float max_x = 100.0f, float thickness = 2.0f);
+    void AddLineArray(const char* label, float(*function)(void* data, int index), void* data, int values_count, float min_x = 0.0f, float max_x = 100.0f, float thickness = 2.0f);
     // Add line data set from function `y = function(x)`
-    IMGUI_API void AddLineFunction(const char* label, float(*function)(float x), int values_count, float min_x = 0.0f, float max_x = 100.0f, float thickness = 2.0f);
+    void AddLineFunction(const char* label, float(*function)(float x), int values_count, float min_x = 0.0f, float max_x = 100.0f, float thickness = 2.0f);
     // Add line data set from function with data source `y = function(data, x)`
-    IMGUI_API void AddLineFunction(const char* label, float(*function)(void* data, float x), void* data, int values_count, float min_x = 0.0f, float max_x = 100.0f, float thickness = 2.0f);
+    void AddLineFunction(const char* label, float(*function)(void* data, float x), void* data, int values_count, float min_x = 0.0f, float max_x = 100.0f, float thickness = 2.0f);
     // MAYBE Bezier, curves, splines
 
     // Add points from array `(x, y) = values[index]`
-    IMGUI_API void AddPoints(const char* label, const ImVec2* values, int values_count, float radius = 2.0f);
+    void AddPoints(const char* label, const ImVec2* values, int values_count, float radius = 2.0f);
     // Add points from function using index with data source `(x, y) = function(data, index)`
-    IMGUI_API void AddPoints(const char* label, ImVec2(*function)(void* data, int index), void* data, int values_count, float radius = 2.0f);
+    void AddPoints(const char* label, ImVec2(*function)(void* data, int index), void* data, int values_count, float radius = 2.0f);
     // MAYBE Bubble chart
 
     // MAYBE Histogram

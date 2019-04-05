@@ -2788,7 +2788,7 @@ static void ShowDemoWindowExtra()
         {
             for(int i = 0; i < values_count; ++i)
             {
-                random_points[i] = ImVec2((rand() % 1000) - 500, (rand() % 1000) - 500);
+                random_points[i] = ImVec2(static_cast<float>((rand() % 1000) - 500), static_cast<float>((rand() % 1000) - 500));
             }
             has_random_points = true;
         }
@@ -2804,10 +2804,10 @@ static void ShowDemoWindowExtra()
             ImGui::PushStyleColor(ImGuiCol_PlotLinesHovered, 0xFF000000);
 
             ImGui::PushStyleColor(ImGuiCol_PlotLines, 0xFF0000FF);
-            graph->AddLineFunction("Sine", SineFunction, 90.0f, -360.0f, 360.0f);
+            graph->AddLineFunction("Sine", SineFunction, 90, -360.0f, 360.0f);
 
             ImGui::PushStyleColor(ImGuiCol_PlotLines, 0xFF00FF00);
-            graph->AddLineFunction("Cosine", CosineFunction, 90.0f, -360.0f, 360.0f); 
+            graph->AddLineFunction("Cosine", CosineFunction, 90, -360.0f, 360.0f); 
 
             ImGui::PushStyleColor(ImGuiCol_PlotLines, 0xFFFF0000);
             graph->AddPoints("Random Points", random_points, values_count);
@@ -2820,25 +2820,26 @@ static void ShowDemoWindowExtra()
     if (ImGui::CollapsingHeader("Custom Behaviors"))
     {
         ImGui::Text("Example: Tab for Navigate and Commit");
+        const bool isTab = ImGui::IsKeyDown(GImGui->IO.KeyMap[ImGuiKey_Tab]);
+        const bool isEnter = ImGui::IsKeyDown(GImGui->IO.KeyMap[ImGuiKey_Enter]);
+        const int count = 10;
 
-        const int key_index = GImGui->IO.KeyMap[ImGuiKey_Tab];
-        const bool isTabbing = ImGui::IsKeyDown(key_index);
-        static char value_buffer[10][256];
-        static char buffer[10][256];
-        for(int i = 0; i < 10; ++i)
+        static char text_buffer[count][256];
+        static char text_active_buffer[count][256];
+        for(int i = 0; i < count; ++i)
         {
             ImGui::PushID(i);
-            ImGui::Text("Value = %s", value_buffer[i]); 
+            ImGui::Text("Text Value = %s", text_buffer[i]); 
             ImGui::SameLine();
-            bool result = ImGui::InputText("", buffer[i], 256, ImGuiInputTextFlags_EnterReturnsTrue);
+            bool result = ImGui::InputText("", text_active_buffer[i], 256, ImGuiInputTextFlags_EnterReturnsTrue);
             bool deactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
-            if(result || (deactivatedAfterEdit && isTabbing)) // handle commit & (optional) handle nav commit
+            if(result || (deactivatedAfterEdit && isTab)) // handle commit & (optional) handle nav commit
             {
-                memcpy(value_buffer[i], buffer[i], 256);
+                memcpy(text_buffer[i], text_active_buffer[i], 256);
             }
             else if(deactivatedAfterEdit) // (optional) handle discard
             {
-                memcpy(buffer[i], value_buffer[i], 256);
+                memcpy(text_active_buffer[i], text_buffer[i], 256);
             }
             ImGui::PopID();
         }

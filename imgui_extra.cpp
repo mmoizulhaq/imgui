@@ -201,7 +201,7 @@ void ImGuiGraph::AddPoints(const char* label, const ImVec2* values, int values_c
 
 void ImGuiGraph::AddPoints(const char* label, ImVec2(*function)(void* data, int index), void* data, int values_count, float radius)
 {
-    ImGuiGraphPlotPointsEx(label, function, data, values_count, radius);
+    ImGuiGraphPlotPointsEx(label, (void*)function, data, values_count, radius);
 }
 
 //-----------------------------------------------------------------------------
