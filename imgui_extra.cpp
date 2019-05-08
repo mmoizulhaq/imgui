@@ -159,7 +159,7 @@ void ImGuiGraph::AddLineFunction(const char* label, float(*function)(void* data,
     ImGuiGraphPlotLineEx(ImGuiGraphPlotLineType_LineFunction, label, (void*)function, data, values_count, min_x, max_x, thickness);
 }
 
-void ImGuiGraphPlotPointsEx(const char* label, void* function, void* data, int values_count, float radius)
+void ImGuiGraphPlotPointsEx(const char* /*label*/, void* function, void* data, int values_count, float radius)
 {
     if(values_count < 1)
         return; 
@@ -167,7 +167,6 @@ void ImGuiGraphPlotPointsEx(const char* label, void* function, void* data, int v
     IM_ASSERT(function);
 
     ImGuiGraph* graph = ImGui::GetCurrentGraph();
-    ImGuiIO& io = ImGui::GetIO();
 
     for(int i = 0; i < values_count; ++i)
     {
