@@ -9,6 +9,11 @@
 
 #ifndef IMGUI_DISABLE_API
 
+#ifdef _MSC_VER
+#pragma warning (push)
+#pragma warning (disable: 4251) // class 'xxx' needs to have dll-interface to be used by clients of struct 'xxx' // when IMGUI_API is set to__declspec(dllexport)
+#endif
+
 //-----------------------------------------------------------------------------
 // Extra forward declarations and basic types
 //-----------------------------------------------------------------------------
@@ -55,7 +60,7 @@ enum ImGuiExtraCol_
 //-----------------------------------------------------------------------------
 
 // WIP
-struct ImGuiGraphData
+struct IMGUI_API ImGuiGraphData
 {
     ImVec2      Pos;
     float       ZoomScale;
@@ -72,7 +77,7 @@ struct ImGuiGraphData
 
 // WIP
 // Storage for SetNextGraph** functions
-struct ImGuiNextGraphData
+struct IMGUI_API ImGuiNextGraphData
 {
     ImGuiCond      PosCond;           // For Pos
     ImGuiCond      ZoomScaleCond;     // For ZoomScale
@@ -213,6 +218,9 @@ namespace ImGui
     IMGUI_API bool InputUnsignedLongInt4(const char* label, unsigned long long v[4], ImGuiInputTextFlags extra_flags = 0);
     IMGUI_API bool InputUnsignedLongIntN(const char* label, unsigned long long* v, int components, ImGuiInputTextFlags extra_flags = 0);
 
+    // Widget: Splitter
+    IMGUI_API bool Splitter(bool split_vertically, float thickness, float* size1, float* size2, float min_size1, float min_size2, float splitter_long_axis_size = -1.0f);
+
     // Widgets: Plot
     IMGUI_API void PlotLinesWithGrid(const char* label, const float* values, int values_count, const int* grid, int grid_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2(0,0), int stride = sizeof(float));
     // Plot lines from an array of data sources
@@ -254,5 +262,9 @@ namespace ImGui
     IMGUI_API void SetNextGraphAxesLineThickness(float thickness, ImGuiCond cond = 0);
     IMGUI_API void SetNextGraphAxesLabelFormat(const char* format,  ImGuiCond cond = 0);
 } // namespace ImGui
+
+#ifdef _MSC_VER
+#pragma warning (pop)
+#endif
 
 #endif // IMGUI_DISABLE_API

@@ -2825,12 +2825,12 @@ namespace math
 
 float SineFunction(float degrees)
 {
-    return math::RadiansToDegrees(sin(math::DegreesToRadians(degrees)));
+    return math::RadiansToDegrees(sinf(math::DegreesToRadians(degrees)));
 }
 
 float CosineFunction(float degrees)
 {
-    return math::RadiansToDegrees(cos(math::DegreesToRadians(degrees)));
+    return math::RadiansToDegrees(cosf(math::DegreesToRadians(degrees)));
 }
 
 static void ShowDemoWindowExtra()
